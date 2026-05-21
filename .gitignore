@@ -1,0 +1,13 @@
+# Internal session notes — not for public repo
+HANDOFF.md
+
+# Local tooling config
+.claude/
+
+# OS / editor cruft
+Thumbs.db
+.DS_Store
+*.tmp
+
+# Power BI temp
+*.pbix.tmp

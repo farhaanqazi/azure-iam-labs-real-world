@@ -1,0 +1,60 @@
+// =====================================================================
+// Lab 1b — Risky Sign-in Detection (KQL on SigninLogs)
+// Workspace: law-iam-labs   |   Table: SigninLogs (via diagnostic setting)
+// Run in: Azure portal > Log Analytics workspaces > law-iam-labs > Logs
+// =====================================================================
+// NOTE: SigninLogs only appears after the first sign-in is ingested
+// (15-60 min lag after the diagnostic setting was created).
+
+
+// ---------------------------------------------------------------------
+// Q1 - Pipeline sanity check: did any sign-ins land in the workspace?
+// If this returns rows, the source -> diagnostic setting -> workspace
+// pipeline works. Start here.
+// ---------------------------------------------------------------------
+SigninLogs
+| where TimeGenerated > ago(24h)
+| summarize SignIns = count() by UserPrincipalName
+| order by SignIns desc
+
+
+// ---------------------------------------------------------------------
+// Q2 - THE CORE QUERY: risky sign-ins caught (Medium + High).
+// This is the 5-line "bridge skill" query. Mirrors a SQL
+// WHERE + SELECT + ORDER BY — proves the data layer.
+// ---------------------------------------------------------------------
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where RiskLevelDuringSignIn in ("medium", "high")
+| project TimeGenerated, UserPrincipalName, RiskLevelDuringSignIn,
+          IPAddress, Country = tostring(LocationDetails.countryOrRegion),
+          AppDisplayName
+| order by TimeGenerated desc
+
+
+// ---------------------------------------------------------------------
+// Q3 - THE DIFFERENTIATOR: prove the report-only policy actually fired.
+// ConditionalAccessPolicies is a nested array on each sign-in. Expand it,
+// filter to CA01, and count its verdicts. In report-only mode verdicts are
+// reportOnlySuccess / reportOnlyFailure / reportOnlyNotApplied.
+// "reportOnlyFailure" = the policy WOULD have challenged/blocked = a catch.
+// ---------------------------------------------------------------------
+SigninLogs
+| where TimeGenerated > ago(7d)
+| mv-expand CAPolicy = ConditionalAccessPolicies
+| where tostring(CAPolicy.displayName) == "CA01-Require-MFA-on-Risky-Signin"
+| extend Verdict = tostring(CAPolicy.result)
+| summarize Count = count() by Verdict
+| order by Count desc
+
+
+// ---------------------------------------------------------------------
+// Q4 - VISUAL: risky sign-in trend by day and risk level (for a chart /
+// Workbook screenshot). Drop the result into a columnchart.
+// ---------------------------------------------------------------------
+SigninLogs
+| where TimeGenerated > ago(30d)
+| where RiskLevelDuringSignIn in ("low", "medium", "high")
+| summarize RiskySignIns = count()
+          by bin(TimeGenerated, 1d), RiskLevelDuringSignIn
+| render columnchart

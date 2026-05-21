@@ -1,0 +1,20 @@
+LAB 1 — INTERVIEW ANSWER (say out loud, ~30 sec)
+
+"If I were securing patient data, I'd implement a Conditional Access policy keyed on
+sign-in risk — requiring MFA for medium- and high-risk logins — because a stolen
+password shouldn't be enough to reach clinical records. I'd run it in report-only mode
+first, monitor the sign-in logs for false positives, then enforce it on high-risk groups.
+To prove it works I'd query SigninLogs in KQL — counting the risky logins caught and
+showing the policy's verdict per sign-in — so I can report coverage to a compliance
+auditor, not just claim it."
+
+WHY THIS LANDS:
+- "report-only first" = you understand safe rollout, not just clicking toggles.
+- "query SigninLogs in KQL" = the data edge most IAM candidates don't have.
+- "report to a compliance auditor" = ties it to NHS/banking governance, not just config.
+
+KEY TERMS TO OWN:
+- Conditional Access = if-this-then-that gate at login.
+- Sign-in risk = Entra's real-time confidence a login is fraudulent.
+- Report-only mode = dry run; logs the verdict without enforcing it.
+- Break-glass account = emergency admin excluded from all policies; anti-lockout.
